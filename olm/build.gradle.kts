@@ -37,6 +37,10 @@ if (HostManager.hostIsMingw) {
 }
 
 kotlin {
+    js(IR) {
+        nodejs()
+        browser()
+    }
     jvm()
     linuxX64()
     macosX64()
@@ -69,6 +73,13 @@ kotlin {
         }
         val nativeTest by creating {
             dependsOn(commonTest.get())
+        }
+
+        val jsMain by getting {
+             dependencies {
+                // ...
+                implementation(npm("@matrix-org/olm", "$olmVersion"))
+            }
         }
 
         for (target in targets.withType<KotlinNativeTarget>()) {
