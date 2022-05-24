@@ -1,18 +1,11 @@
 package io.github.matrixkt.olm
 
-import colm.internal.*
-import kotlinx.cinterop.*
-import platform.posix.size_t
 import kotlin.random.Random
 
-public actual class OutboundGroupSession private constructor(private val ptr: OlmOutboundGroupSession) {
-    public actual constructor(random: Random): this(genericInit(::olm_outbound_group_session, ::olm_outbound_group_session_size)) {
+public actual class OutboundGroupSession private constructor(private val ptr: JJOlm.OutboundGroupSession) {
+    public actual constructor(random: Random): this(JJOlm.OutboundGroupSession()) {
         try {
-            val randomLength = olm_init_outbound_group_session_random_length(ptr)
-            val result = withRandomBuffer(randomLength, random) { randomBuff ->
-                olm_init_outbound_group_session(ptr, randomBuff?.reinterpret(), randomLength)
-            }
-            checkError(result)
+            ptr.create()
         } catch (e: Exception) {
             clear()
             throw e
@@ -20,8 +13,7 @@ public actual class OutboundGroupSession private constructor(private val ptr: Ol
     }
 
     public actual fun clear() {
-        olm_clear_outbound_group_session(ptr)
-        nativeHeap.free(ptr)
+        ptr.free()
     }
 
     /**
@@ -30,14 +22,7 @@ public actual class OutboundGroupSession private constructor(private val ptr: Ol
      */
     public actual val sessionId: String
         get() {
-            val length = olm_outbound_group_session_id_length(ptr)
-            val sessionId = ByteArray(length.convert())
-
-            val result = sessionId.usePinned { sessionIdPtr ->
-                olm_outbound_group_session_id(ptr, sessionIdPtr.addressOf(0).reinterpret(), length)
-            }
-            checkError(result)
-            return sessionId.decodeToString()
+            return ptr.session_id()
         }
 
     /**
@@ -47,7 +32,7 @@ public actual class OutboundGroupSession private constructor(private val ptr: Ol
      * method returns the index for the next message.
      * @return current session index
      */
-    public actual val messageIndex: Int get() = olm_outbound_group_session_message_index(ptr).convert()
+    public actual val messageIndex: Int get() = ptr.message_index()
 
     /**
      * Get the base64-encoded current ratchet key for this session.
@@ -58,14 +43,7 @@ public actual class OutboundGroupSession private constructor(private val ptr: Ol
      */
     public actual val sessionKey: String
         get() {
-            val sessionKeyLength = olm_outbound_group_session_key_length(ptr)
-            val sessionKey = ByteArray(sessionKeyLength.convert())
-
-            sessionKey.usePinned {
-                val result = olm_outbound_group_session_key(ptr, it.addressOf(0).reinterpret(), sessionKeyLength)
-                checkError(result)
-            }
-            return sessionKey.decodeToString()
+            return ptr.session_key()
         }
 
     /**
@@ -76,43 +54,27 @@ public actual class OutboundGroupSession private constructor(private val ptr: Ol
      * @return the encrypted message
      */
     public actual fun encrypt(plainText: String): String {
-        return plainText.withNativeRead { plainTextPtr, plainTextLength ->
-            val encryptedMsgLength = olm_group_encrypt_message_length(ptr, plainTextLength)
-            val encryptedMsg = ByteArray(encryptedMsgLength.convert())
-
-            val length = encryptedMsg.usePinned {
-                olm_group_encrypt(ptr, plainTextPtr?.reinterpret(), plainTextLength.convert(),
-                    it.addressOf(0).reinterpret(), encryptedMsgLength)
-            }
-            checkError(length)
-            encryptedMsg.decodeToString(endIndex = length.convert())
-        }
+       return ptr.encrypt(plainText)
     }
 
     public actual fun pickle(key: ByteArray): String {
-        return genericPickle(ptr, key, ::olm_pickle_outbound_group_session_length, ::olm_pickle_outbound_group_session, ::checkError)
-    }
-
-    private fun checkError(result: size_t) {
-        genericCheckError(ptr, result, ::olm_outbound_group_session_last_error)
+        return ptr.pickle(key)
     }
 
     public actual companion object {
-        private inline fun create(block: OutboundGroupSession.() -> Unit): OutboundGroupSession {
-            val obj = OutboundGroupSession(genericInit(::olm_outbound_group_session, ::olm_outbound_group_session_size))
-            try {
-                obj.block()
-            } catch (e: Exception) {
-                obj.clear() // Prevent leak
-                throw e
+            /**
+             * Loads an account from a pickled bytes buffer.
+             *
+             * @see [pickle]
+             * @param[key] key used to encrypt
+             * @param[pickle] bytes buffer
+             */
+            public actual fun unpickle(key: ByteArray, pickle: String): OutboundGroupSession {
+                val session = JJOlm.OutboundGroupSession()
+                session.unpickle(key, pickle)
+                // Todo: Needs error handling for failing and then freeing mem
+                return OutboundGroupSession(session)
             }
-            return obj
-        }
 
-        public actual fun unpickle(key: ByteArray, pickle: String): OutboundGroupSession {
-            return create {
-                genericUnpickle(ptr, key, pickle, ::olm_unpickle_outbound_group_session, ::checkError)
-            }
-        }
     }
 }

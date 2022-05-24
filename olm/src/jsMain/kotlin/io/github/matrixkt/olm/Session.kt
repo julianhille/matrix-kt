@@ -1,8 +1,5 @@
 package io.github.matrixkt.olm
 
-import colm.internal.*
-import kotlinx.cinterop.*
-import platform.posix.size_t
 import kotlin.random.Random
 
 /**
@@ -17,12 +14,10 @@ import kotlin.random.Random
  *
  * Detailed implementation guide is available at [Implementing End-to-End Encryption in Matrix clients](http://matrix.org/docs/guides/e2e_implementation.html).
  */
-public actual class Session private constructor() {
-    internal val ptr = genericInit(::olm_session, ::olm_session_size)
+public actual class Session private constructor(internal val ptr: JJOlm.Session = JJOlm.Session()) {
 
     public actual fun clear() {
-        olm_clear_session(ptr)
-        nativeHeap.free(ptr)
+        ptr.free()
     }
 
     /**
@@ -35,24 +30,13 @@ public actual class Session private constructor() {
      * @return the session ID
      */
     public actual val sessionId: String
-        get() {
-            val sessionIdLength = olm_session_id_length(ptr)
-            val id = ByteArray(sessionIdLength.convert())
-            val result = olm_session_id(ptr, id.refTo(0), sessionIdLength)
-            checkError(result)
-            return id.decodeToString()
-        }
+      get() = ptr.session_id()
+
 
     public actual val hasReceivedMessage: Boolean
-        get() = olm_session_has_received_message(ptr) != 0
+        get() = ptr.has_received_message()
 
-    public actual fun describe(): String {
-        // Magic number pulled from here https://gitlab.matrix.org/matrix-org/olm/-/blob/b482321213e6e896d0981c266bed12f4e1f67441/javascript/olm_post.js#L465
-        val bufferSize = 256
-        val desc = ByteArray(bufferSize)
-        olm_session_describe(ptr, desc.refTo(0), bufferSize.convert())
-        return desc.decodeToString()
-    }
+    public actual fun describe(): String = ptr.describe()
 
     /**
      * Checks if the PRE_KEY([Message.MESSAGE_TYPE_PRE_KEY]) message is for this in-bound session.<br>
@@ -63,11 +47,7 @@ public actual class Session private constructor() {
      */
     public actual fun matchesInboundSession(oneTimeKeyMsg: String): Boolean {
         require(oneTimeKeyMsg.isNotBlank())
-
-        val result = oneTimeKeyMsg.withNativeRead { oneTimeKeyMsgPtr, oneTimeKeyMsgSize ->
-            olm_matches_inbound_session(ptr, oneTimeKeyMsgPtr, oneTimeKeyMsgSize)
-        }
-        return 1 == result.toInt()
+        return ptr.matches_inbound(oneTimeKeyMsg)
     }
 
     /**
@@ -79,15 +59,7 @@ public actual class Session private constructor() {
      * @return this if operation succeed, null otherwise
      */
     public actual fun matchesInboundSessionFrom(theirIdentityKey: String, oneTimeKeyMsg: String): Boolean {
-        val result = theirIdentityKey.withNativeRead { theirIdentityKeyPtr, theirIdentityKeySize ->
-            oneTimeKeyMsg.withNativeRead { oneTimeKeyMsgPtr, oneTimeKeyMsgSize ->
-                olm_matches_inbound_session_from(
-                    ptr,
-                    theirIdentityKeyPtr, theirIdentityKeySize,
-                    oneTimeKeyMsgPtr, oneTimeKeyMsgSize)
-            }
-        }
-        return 1 == result.toInt()
+        return ptr.matches_inbound_from(theirIdentityKey, oneTimeKeyMsg)
     }
 
     /**
@@ -99,23 +71,8 @@ public actual class Session private constructor() {
      * @return the encrypted message
      */
     public actual fun encrypt(clearMsg: String, random: Random): Message {
-        val messageType = olm_encrypt_message_type(ptr)
-
-        return clearMsg.withNativeRead { clearMsgPtr, clearMsgSize ->
-            val encryptedMsgLength = olm_encrypt_message_length(ptr, clearMsgSize)
-            val encryptedMsg = ByteArray(encryptedMsgLength.convert())
-
-            val randomBuffSize = olm_encrypt_random_length(ptr)
-            val length = withRandomBuffer(randomBuffSize, random) { randomBuff ->
-                olm_encrypt(
-                    ptr, clearMsgPtr, clearMsgSize,
-                    randomBuff, randomBuffSize,
-                    encryptedMsg.refTo(0), encryptedMsgLength)
-            }
-            checkError(length)
-
-            Message(encryptedMsg.decodeToString(endIndex = length.convert()), messageType.convert())
-        }
+        return ptr.encrypt(clearMsg)
+        //Message(encryptedMsg.decodeToString(endIndex = length.convert()), messageType.convert())
     }
 
     /**
@@ -127,23 +84,7 @@ public actual class Session private constructor() {
     public actual fun decrypt(encryptedMsg: Message): String {
         // olm_decrypt_max_plaintext_length and olm_decrypt destroy the input buffer
         // Hence the need for two `withNativeRead`s. Should optimize this later.
-
-        val maxPlainTextLength = encryptedMsg.cipherText.withNativeRead { encryptedMsgPtr, encryptedMsgSize ->
-            olm_decrypt_max_plaintext_length(
-                ptr, encryptedMsg.type.convert(), encryptedMsgPtr, encryptedMsgSize)
-        }
-        checkError(maxPlainTextLength)
-
-        return encryptedMsg.cipherText.withNativeRead { encryptedMsgPtr, encryptedMsgSize ->
-            val plainTextMsg = ByteArray(maxPlainTextLength.convert())
-            val plainTextLength = olm_decrypt(
-                ptr, encryptedMsg.type.convert(),
-                encryptedMsgPtr, encryptedMsgSize,
-                plainTextMsg.refTo(0), maxPlainTextLength)
-            checkError(plainTextLength)
-
-            plainTextMsg.decodeToString(endIndex = plainTextLength.convert())
-        }
+        return ptr.decrypt(encryptedMsg.type.toInt(), encryptedMsg.cipherText)
     }
 
     /**
@@ -155,24 +96,11 @@ public actual class Session private constructor() {
      * @return the session as bytes buffer
      */
     public actual fun pickle(key: ByteArray): String {
-        return genericPickle(ptr, key, ::olm_pickle_session_length, ::olm_pickle_session, ::checkError)
+        return ptr.pickle(key)
     }
 
-    private fun checkError(result: size_t) {
-        genericCheckError(ptr, result, ::olm_session_last_error)
-    }
 
     public actual companion object {
-        private inline fun create(block: Session.() -> Unit): Session {
-            val obj = Session()
-            try {
-                obj.block()
-            } catch (e: Exception) {
-                obj.clear() // Prevent leak
-                throw e
-            }
-            return obj
-        }
 
         /**
          * Creates a new out-bound session for sending messages to a recipient
@@ -185,21 +113,10 @@ public actual class Session private constructor() {
         public actual fun createOutboundSession(account: Account, theirIdentityKey: String, theirOneTimeKey: String, random: Random): Session {
             require(theirIdentityKey.isNotBlank())
             require(theirOneTimeKey.isNotBlank())
-            return create {
-                theirIdentityKey.withNativeRead { theirIdentityKeyPtr, theirIdentityKeySize ->
-                    theirOneTimeKey.withNativeRead { theirOneTimeKeyPtr, theirOneTimeKeySize ->
-                        val randomBuffSize = olm_create_outbound_session_random_length(ptr)
-                        withRandomBuffer(randomBuffSize, random) { randomBuffPtr ->
-                            val result = olm_create_outbound_session(
-                                ptr, account.ptr,
-                                theirIdentityKeyPtr, theirIdentityKeySize,
-                                theirOneTimeKeyPtr, theirOneTimeKeySize,
-                                randomBuffPtr, randomBuffSize)
-                            checkError(result)
-                        }
-                    }
-                }
-            }
+            val jsSession = JJOlm.Session()
+            jsSession.create_outbound(account.ptr, theirIdentityKey, theirOneTimeKey)
+            // Todo: Needs error handling for failing and then freeing mem
+            return Session(jsSession)
         }
 
         /**
@@ -212,13 +129,10 @@ public actual class Session private constructor() {
          */
         public actual fun createInboundSession(account: Account, oneTimeKeyMsg: String): Session {
             require(oneTimeKeyMsg.isNotBlank())
-
-            return create {
-                val result = oneTimeKeyMsg.withNativeRead { oneTimeKeyMsgPtr, oneTimeKeyMsgSize ->
-                    olm_create_inbound_session(ptr, account.ptr, oneTimeKeyMsgPtr, oneTimeKeyMsgSize)
-                }
-                checkError(result)
-            }
+            val jsSession = JJOlm.Session()
+            jsSession.create_inbound(account.ptr, oneTimeKeyMsg)
+            // Todo: Needs error handling for failing and then freeing mem
+            return Session(jsSession)
         }
 
         /**
@@ -234,18 +148,10 @@ public actual class Session private constructor() {
         public actual fun createInboundSessionFrom(account: Account, theirIdentityKey: String, oneTimeKeyMsg: String): Session {
             require(theirIdentityKey.isNotBlank())
             require(oneTimeKeyMsg.isNotBlank())
-
-            return create {
-                val result = theirIdentityKey.withNativeRead { theirIdentityKeyPtr, theirIdentityKeySize ->
-                    oneTimeKeyMsg.withNativeRead { oneTimeKeyMsgPtr, oneTimeKeyMsgSize ->
-                        olm_create_inbound_session_from(
-                            ptr, account.ptr,
-                            theirIdentityKeyPtr, theirIdentityKeySize,
-                            oneTimeKeyMsgPtr, oneTimeKeyMsgSize)
-                    }
-                }
-                checkError(result)
-            }
+            val jsSession = JJOlm.Session()
+            jsSession.create_inbound_from(account.ptr, theirIdentityKey, oneTimeKeyMsg)
+            // Todo: Needs error handling for failing and then freeing mem
+            return Session(jsSession)
         }
 
         /**
@@ -257,9 +163,10 @@ public actual class Session private constructor() {
          * @exception Exception the exception
          */
         public actual fun unpickle(key: ByteArray, pickle: String): Session {
-            return create {
-                genericUnpickle(ptr, key, pickle, ::olm_unpickle_session, ::checkError)
-            }
+            val session = JJOlm.Session()
+            // Todo: Needs error handling for failing and then freeing mem
+            session.unpickle(key, pickle)
+            return Session(session)
         }
     }
 }
