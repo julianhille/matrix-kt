@@ -16,6 +16,7 @@ kotlin {
     js {
         browser()
         nodejs()
+        binaries.library()
     }
     linuxX64()
     mingwX64()

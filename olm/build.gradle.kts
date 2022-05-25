@@ -41,6 +41,7 @@ kotlin {
     js(IR) {
         nodejs()
         browser()
+        binaries.library()
     }
     jvm()
     linuxX64()
