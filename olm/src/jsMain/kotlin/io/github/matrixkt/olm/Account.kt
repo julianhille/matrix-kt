@@ -1,10 +1,12 @@
 package io.github.matrixkt.olm
 
+import org.khronos.webgl.Uint8Array
 import kotlin.random.Random
 
-public actual class Account (internal val ptr: JJOlm.Account) {
-
-    public actual constructor(random: Random): this(JJOlm.Account()) {
+@JsExport
+public actual class Account actual constructor(random: Random) {
+    internal var ptr: JJOlm.Account = JJOlm.Account()
+    init {
         try {
             ptr.create()
         } catch (e: Exception) {
@@ -13,6 +15,10 @@ public actual class Account (internal val ptr: JJOlm.Account) {
         }
     }
 
+    internal fun replacePtr(newPtr: JJOlm.Account) {
+        clear()
+        ptr = newPtr
+    }
 
     public actual val identityKeys: IdentityKeys
         get() {
@@ -107,7 +113,7 @@ public actual class Account (internal val ptr: JJOlm.Account) {
     }
 
     public actual fun pickle(key: ByteArray): String {
-        return this.pickle(key)
+        return ptr.pickle(Uint8Array(key.toTypedArray()))
     }
 
     public actual companion object {
@@ -121,8 +127,10 @@ public actual class Account (internal val ptr: JJOlm.Account) {
         public actual fun unpickle(key: ByteArray, pickle: String): Account {
             val result = JJOlm.Account()
             // Todo: Needs error handling for failing and then freeing mem
-            result.unpickle(key, pickle)
-            return Account(result)
+            result.unpickle(Uint8Array(key.toTypedArray()), pickle)
+            val newPtr = Account()
+            newPtr.replacePtr(result)
+            return newPtr
         }
     }
 

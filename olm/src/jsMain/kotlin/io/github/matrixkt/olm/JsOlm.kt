@@ -39,10 +39,10 @@ public external abstract class JJOlm() {
       public fun remove_one_time_keys(session: Session);
       public fun generate_fallback_key();
       public fun fallback_key(): OneTimeKeys;
-      public fun pickle(key: Uint8Array): String;
+      public fun pickle(key: Uint8Array ): String;
       public fun free();
       public fun sign(message: String): String;
-      public fun unpickle(key: ByteArray, pickle: String): Account;
+      public fun unpickle(key: Uint8Array, pickle: String): Account;
     }
 
     public class OutboundGroupSession {
