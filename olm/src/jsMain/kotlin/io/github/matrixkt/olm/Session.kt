@@ -14,7 +14,7 @@ import kotlin.random.Random
  *
  * Detailed implementation guide is available at [Implementing End-to-End Encryption in Matrix clients](http://matrix.org/docs/guides/e2e_implementation.html).
  */
-public actual class Session private constructor(internal val ptr: JJOlm.Session = JJOlm.Session()) {
+public actual class Session private constructor(internal val ptr: JsOlm.Session = JsOlm.Session()) {
 
     public actual fun clear() {
         ptr.free()
@@ -113,10 +113,14 @@ public actual class Session private constructor(internal val ptr: JJOlm.Session 
         public actual fun createOutboundSession(account: Account, theirIdentityKey: String, theirOneTimeKey: String, random: Random): Session {
             require(theirIdentityKey.isNotBlank())
             require(theirOneTimeKey.isNotBlank())
-            val jsSession = JJOlm.Session()
-            jsSession.create_outbound(account.ptr, theirIdentityKey, theirOneTimeKey)
-            // Todo: Needs error handling for failing and then freeing mem
-            return Session(jsSession)
+            val jsSession = JsOlm.Session()
+            try {
+                jsSession.create_outbound(account.ptr, theirIdentityKey, theirOneTimeKey)
+                return Session(jsSession)
+            } catch (e: Exception) {
+                jsSession.free()
+                throw e
+            }
         }
 
         /**
@@ -129,10 +133,14 @@ public actual class Session private constructor(internal val ptr: JJOlm.Session 
          */
         public actual fun createInboundSession(account: Account, oneTimeKeyMsg: String): Session {
             require(oneTimeKeyMsg.isNotBlank())
-            val jsSession = JJOlm.Session()
-            jsSession.create_inbound(account.ptr, oneTimeKeyMsg)
-            // Todo: Needs error handling for failing and then freeing mem
-            return Session(jsSession)
+            val jsSession = JsOlm.Session()
+            try {
+                jsSession.create_inbound(account.ptr, oneTimeKeyMsg)
+                return Session(jsSession)
+            } catch (e: Exception) {
+                jsSession.free()
+                throw e
+            }
         }
 
         /**
@@ -148,10 +156,14 @@ public actual class Session private constructor(internal val ptr: JJOlm.Session 
         public actual fun createInboundSessionFrom(account: Account, theirIdentityKey: String, oneTimeKeyMsg: String): Session {
             require(theirIdentityKey.isNotBlank())
             require(oneTimeKeyMsg.isNotBlank())
-            val jsSession = JJOlm.Session()
-            jsSession.create_inbound_from(account.ptr, theirIdentityKey, oneTimeKeyMsg)
-            // Todo: Needs error handling for failing and then freeing mem
-            return Session(jsSession)
+            val jsSession = JsOlm.Session()
+            try {
+                jsSession.create_inbound_from(account.ptr, theirIdentityKey, oneTimeKeyMsg)
+                return Session(jsSession)
+            } catch (e: Exception) {
+                jsSession.free()
+                throw e
+            }
         }
 
         /**
@@ -163,10 +175,14 @@ public actual class Session private constructor(internal val ptr: JJOlm.Session 
          * @exception Exception the exception
          */
         public actual fun unpickle(key: ByteArray, pickle: String): Session {
-            val session = JJOlm.Session()
-            // Todo: Needs error handling for failing and then freeing mem
-            session.unpickle(key, pickle)
-            return Session(session)
+            val session = JsOlm.Session()
+            try {
+                session.unpickle(key, pickle)
+                return Session(session)
+            } catch (e: Exception) {
+                session.free()
+                throw e
+            }
         }
     }
 }

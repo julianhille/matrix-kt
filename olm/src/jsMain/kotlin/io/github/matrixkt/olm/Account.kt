@@ -1,12 +1,12 @@
 package io.github.matrixkt.olm
 
-import org.khronos.webgl.Uint8Array
 import kotlin.random.Random
+import kotlinx.serialization.json.Json
 
-@JsExport
-public actual class Account actual constructor(random: Random) {
-    internal var ptr: JJOlm.Account = JJOlm.Account()
-    init {
+
+public actual open class Account(internal val ptr: JsOlm.Account) {
+
+    public actual constructor(random: Random): this(JsOlm.Account()) {
         try {
             ptr.create()
         } catch (e: Exception) {
@@ -15,14 +15,10 @@ public actual class Account actual constructor(random: Random) {
         }
     }
 
-    internal fun replacePtr(newPtr: JJOlm.Account) {
-        clear()
-        ptr = newPtr
-    }
-
     public actual val identityKeys: IdentityKeys
         get() {
-            return ptr.identity_keys()
+            val keysStr = ptr.identity_keys()
+            return Json.decodeFromString(IdentityKeys.serializer(), keysStr)
         }
 
     /**
@@ -43,7 +39,7 @@ public actual class Account actual constructor(random: Random) {
      * @param numberOfKeys number of keys to generate
      */
     public actual fun generateOneTimeKeys(numberOfKeys: Long, random: Random) {
-      ptr.generate_one_time_keys(numberOfKeys.toInt())
+        ptr.generate_one_time_keys(numberOfKeys)
     }
 
     /**
@@ -62,7 +58,8 @@ public actual class Account actual constructor(random: Random) {
      */
     public actual val oneTimeKeys: OneTimeKeys
         get() {
-            return ptr.one_time_keys()
+            val keysStr = ptr.one_time_keys()
+            return Json.decodeFromString(OneTimeKeys.serializer(), keysStr)
         }
 
 
@@ -93,7 +90,8 @@ public actual class Account actual constructor(random: Random) {
      */
     public actual val fallbackKey: OneTimeKeys
         get() {
-            return ptr.fallback_key()
+            val keysStr = ptr.fallback_key()
+            return Json.decodeFromString(OneTimeKeys.serializer(), keysStr)
         }
 
     /**
@@ -113,7 +111,8 @@ public actual class Account actual constructor(random: Random) {
     }
 
     public actual fun pickle(key: ByteArray): String {
-        return ptr.pickle(Uint8Array(key.toTypedArray()))
+        return ptr.pickle(key.toString())
+
     }
 
     public actual companion object {
@@ -125,15 +124,14 @@ public actual class Account actual constructor(random: Random) {
          * @param[pickle] bytes buffer
          */
         public actual fun unpickle(key: ByteArray, pickle: String): Account {
-            val result = JJOlm.Account()
-            // Todo: Needs error handling for failing and then freeing mem
-            result.unpickle(Uint8Array(key.toTypedArray()), pickle)
-            val newPtr = Account()
-            newPtr.replacePtr(result)
-            return newPtr
+            val result = JsOlm.Account()
+            try {
+                result.unpickle(key.toString(), pickle)
+            } catch (e: Exception) {
+                result.free()
+                throw e
+            }
+            return Account(result)
         }
     }
-
-
-
 }

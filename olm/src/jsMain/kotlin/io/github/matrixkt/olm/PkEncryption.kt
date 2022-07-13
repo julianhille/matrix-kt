@@ -3,7 +3,7 @@ package io.github.matrixkt.olm
 import kotlin.random.Random
 
 public actual class PkEncryption actual constructor(recipientKey: String) {
-    private val ptr = JJOlm.PkEncryption()
+    private val ptr = JsOlm.PkEncryption()
 
     init {
         try {
@@ -19,9 +19,7 @@ public actual class PkEncryption actual constructor(recipientKey: String) {
     }
 
     public actual fun encrypt(plaintext: String, random: Random): PkMessage {
-        val encrypted = ptr.encrypt(plaintext)
-        //PkMessage(encrypted.cipherText, encrypted.mac, encrypted.ephemeral)
-        return encrypted
+        return ptr.encrypt(plaintext)
     }
 
 }

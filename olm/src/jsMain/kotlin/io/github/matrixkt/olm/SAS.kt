@@ -3,7 +3,7 @@ package io.github.matrixkt.olm
 import kotlin.random.Random
 
 public actual class SAS actual constructor(random: Random) {
-    private val ptr = JJOlm.SAS()
+    private val ptr = JsOlm.SAS()
 
     public actual fun clear() {
         ptr.free()
@@ -38,7 +38,7 @@ public actual class SAS actual constructor(random: Random) {
      * @return The generated short code.
      */
     public actual fun generateShortCode(info: String, numberOfBytes: Int): ByteArray {
-        return ptr.generate_bytes(info, numberOfBytes)
+        return ptr.generate_bytes(info, numberOfBytes).toString().encodeToByteArray()
     }
 
     public actual fun calculateMac(message: String, info: String): String {

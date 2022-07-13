@@ -70,18 +70,18 @@ kotlin {
                 implementation("net.java.dev.jna:jna:$jnaVersion")
             }
         }
+
+        named("jsMain") {
+            dependencies {
+                implementation(npm("@matrix-org/olm", olmVersion))
+            }
+        }
+
         val nativeMain by creating {
             dependsOn(commonMain.get())
         }
         val nativeTest by creating {
             dependsOn(commonTest.get())
-        }
-
-        val jsMain by getting {
-             dependencies {
-                // ...
-                implementation(npm("@matrix-org/olm", "$olmVersion"))
-            }
         }
 
         for (target in targets.withType<KotlinNativeTarget>()) {

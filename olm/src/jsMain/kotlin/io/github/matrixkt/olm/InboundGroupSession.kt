@@ -1,12 +1,10 @@
 package io.github.matrixkt.olm
 
-import kotlin.random.Random
+
+public actual class InboundGroupSession private constructor(private val ptr: JsOlm.InboundGroupSession) {
 
 
-public actual class InboundGroupSession private constructor(internal val ptr: JJOlm.InboundGroupSession) {
-
-
-    public actual constructor(sessionKey: String): this(JJOlm.InboundGroupSession()) {
+    public actual constructor(sessionKey: String): this(JsOlm.InboundGroupSession()) {
         try {
             ptr.create(sessionKey)
         } catch (e: Exception) {
@@ -15,18 +13,15 @@ public actual class InboundGroupSession private constructor(internal val ptr: JJ
         }
     }
 
-
     public actual fun clear () {
         ptr.free();
     }
-
 
     /**
      * Retrieve the base64-encoded identifier for this inbound group session.
      * @return the session ID
      */
     public actual val sessionId: String get() = ptr.session_id()
-
 
     /**
      * Provides the first known index.
@@ -40,12 +35,7 @@ public actual class InboundGroupSession private constructor(internal val ptr: JJ
      */
     public actual val isVerified: Boolean
         get()  {
-            try {
-                // Todo: has no equivalent on js olm
-                return true
-            } catch (_: Exception) {
-                return false
-            }
+            throw NotImplementedError("is verified is not implemented in matrix-org/olm")
         }
 
     /**
@@ -54,7 +44,7 @@ public actual class InboundGroupSession private constructor(internal val ptr: JJ
      * @return the session as String
      */
     public actual fun export(messageIndex: Long): String {
-        return ptr.export_session(messageIndex);
+        return ptr.export_session(messageIndex)
     }
 
     /**
@@ -68,14 +58,18 @@ public actual class InboundGroupSession private constructor(internal val ptr: JJ
     }
 
     public actual fun pickle(key: ByteArray): String {
-        return ptr.pickle(key);
+        return ptr.pickle(key.toString())
     }
 
     public actual companion object {
         public actual fun import(sessionKey: String): InboundGroupSession {
-            // Todo: Needs error handling for failing and then freeing mem
-            val session = JJOlm.InboundGroupSession()
-            session.import_session(sessionKey)
+            val session = JsOlm.InboundGroupSession()
+            try {
+                session.import_session(sessionKey)
+            } catch (e: Exception) {
+                session.free()
+                throw e
+            }
             return InboundGroupSession(session)
         }
 
@@ -88,9 +82,13 @@ public actual class InboundGroupSession private constructor(internal val ptr: JJ
          * @param[pickle] bytes buffer
          */
         public actual fun unpickle(key: ByteArray, pickle: String): InboundGroupSession {
-            // Todo: Needs error handling for failing and then freeing mem
-            val session = JJOlm.InboundGroupSession()
-            session.unpickle(key, pickle)
+            val session = JsOlm.InboundGroupSession()
+            try {
+                session.unpickle(key.toString(), pickle)
+            } catch (e: Exception) {
+                session.free()
+                throw e
+            }
             return InboundGroupSession(session)
         }
     }

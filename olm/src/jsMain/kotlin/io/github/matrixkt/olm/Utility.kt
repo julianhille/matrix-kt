@@ -5,7 +5,7 @@ package io.github.matrixkt.olm
  * Olm SDK helper class.
  */
 public actual class Utility {
-    private val ptr = JJOlm.Utility()
+    private val ptr = JsOlm.Utility()
 
     public actual fun clear() {
         ptr.free()

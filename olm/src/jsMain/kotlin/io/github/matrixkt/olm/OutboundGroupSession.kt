@@ -2,8 +2,8 @@ package io.github.matrixkt.olm
 
 import kotlin.random.Random
 
-public actual class OutboundGroupSession private constructor(private val ptr: JJOlm.OutboundGroupSession) {
-    public actual constructor(random: Random): this(JJOlm.OutboundGroupSession()) {
+public actual class OutboundGroupSession private constructor(private val ptr: JsOlm.OutboundGroupSession) {
+    public actual constructor(random: Random): this(JsOlm.OutboundGroupSession()) {
         try {
             ptr.create()
         } catch (e: Exception) {
@@ -58,7 +58,7 @@ public actual class OutboundGroupSession private constructor(private val ptr: JJ
     }
 
     public actual fun pickle(key: ByteArray): String {
-        return ptr.pickle(key)
+        return ptr.pickle(key.toString())
     }
 
     public actual companion object {
@@ -70,9 +70,13 @@ public actual class OutboundGroupSession private constructor(private val ptr: JJ
              * @param[pickle] bytes buffer
              */
             public actual fun unpickle(key: ByteArray, pickle: String): OutboundGroupSession {
-                val session = JJOlm.OutboundGroupSession()
-                session.unpickle(key, pickle)
-                // Todo: Needs error handling for failing and then freeing mem
+                val session = JsOlm.OutboundGroupSession()
+                try {
+                    session.unpickle(key.toString(), pickle)
+                } catch (e: Exception) {
+                    session.free()
+                    throw e
+                }
                 return OutboundGroupSession(session)
             }
 
