@@ -62,22 +62,22 @@ public actual class OutboundGroupSession private constructor(private val ptr: Js
     }
 
     public actual companion object {
-            /**
-             * Loads an account from a pickled bytes buffer.
-             *
-             * @see [pickle]
-             * @param[key] key used to encrypt
-             * @param[pickle] bytes buffer
-             */
-            public actual fun unpickle(key: ByteArray, pickle: String): OutboundGroupSession {
-                val session = JsOlm.OutboundGroupSession()
-                try {
-                    session.unpickle(key.toString(), pickle)
-                } catch (e: Exception) {
-                    session.free()
-                    throw e
-                }
-                return OutboundGroupSession(session)
+        /**
+         * Loads an account from a pickled bytes buffer.
+         *
+         * @see [pickle]
+         * @param[key] key used to encrypt
+         * @param[pickle] bytes buffer
+         */
+        public actual fun unpickle(key: ByteArray, pickle: String): OutboundGroupSession {
+            val session = JsOlm.OutboundGroupSession()
+            try {
+                session.unpickle(key.toString(), pickle)
+            } catch (e: Exception) {
+                session.free()
+                throw e
             }
+            return OutboundGroupSession(session)
+        }
     }
 }
