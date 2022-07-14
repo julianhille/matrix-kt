@@ -72,7 +72,6 @@ public actual class Session private constructor(internal val ptr: JsOlm.Session 
      */
     public actual fun encrypt(clearMsg: String, random: Random): Message {
         return ptr.encrypt(clearMsg)
-        //Message(encryptedMsg.decodeToString(endIndex = length.convert()), messageType.convert())
     }
 
     /**
