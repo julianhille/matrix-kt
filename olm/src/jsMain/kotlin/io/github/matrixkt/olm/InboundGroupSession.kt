@@ -33,7 +33,7 @@ public actual class InboundGroupSession private constructor(private val ptr: JsO
      */
     public actual val isVerified: Boolean
         get()  {
-            throw NotImplementedError("is verified is not implemented in matrix-org/olm")
+            throw NotImplementedError("isVerified is not implemented in matrix-org/olm js implementation")
         }
 
     /**
