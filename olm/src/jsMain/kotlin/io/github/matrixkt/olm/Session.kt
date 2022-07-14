@@ -99,7 +99,6 @@ public actual class Session private constructor(internal val ptr: JsOlm.Session 
         return ptr.pickle(key)
     }
 
-
     public actual companion object {
 
         /**

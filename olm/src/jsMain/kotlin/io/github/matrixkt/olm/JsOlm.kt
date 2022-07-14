@@ -129,5 +129,4 @@ public external class JsOlm {
         public fun ed25519_verify(key: String, message: Uint8Array, signature: String);
     }
 
-    
 }

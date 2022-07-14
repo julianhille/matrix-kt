@@ -72,7 +72,6 @@ session.clear()
 account.clear()
 ```
 
-
 #### JS
 
 Javascript has a special prerequisites. 

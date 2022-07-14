@@ -1,8 +1,6 @@
 package io.github.matrixkt.olm
 
-
 public actual class InboundGroupSession private constructor(private val ptr: JsOlm.InboundGroupSession) {
-
 
     public actual constructor(sessionKey: String): this(JsOlm.InboundGroupSession()) {
         try {
@@ -72,7 +70,6 @@ public actual class InboundGroupSession private constructor(private val ptr: JsO
             }
             return InboundGroupSession(session)
         }
-
 
         /**
          * Loads an Inbound group session from a pickled bytes buffer.

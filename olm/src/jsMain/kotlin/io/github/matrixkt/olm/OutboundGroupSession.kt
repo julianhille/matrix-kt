@@ -79,6 +79,5 @@ public actual class OutboundGroupSession private constructor(private val ptr: Js
                 }
                 return OutboundGroupSession(session)
             }
-
     }
 }

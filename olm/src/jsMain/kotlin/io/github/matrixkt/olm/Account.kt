@@ -3,7 +3,6 @@ package io.github.matrixkt.olm
 import kotlin.random.Random
 import kotlinx.serialization.json.Json
 
-
 public actual open class Account(internal val ptr: JsOlm.Account) {
 
     public actual constructor(random: Random): this(JsOlm.Account()) {
@@ -29,7 +28,6 @@ public actual open class Account(internal val ptr: JsOlm.Account) {
         get() {
             return ptr.max_number_of_one_time_keys()
         }
-
 
     /**
      * Generate a number of new one time keys.
@@ -61,7 +59,6 @@ public actual open class Account(internal val ptr: JsOlm.Account) {
             val keysStr = ptr.one_time_keys()
             return Json.decodeFromString(OneTimeKeys.serializer(), keysStr)
         }
-
 
     /**
      * Remove the "one time keys" that the session used from the account.
@@ -105,14 +102,12 @@ public actual open class Account(internal val ptr: JsOlm.Account) {
         return ptr.sign(message)
     }
 
-
     public actual fun clear () {
        ptr.free();
     }
 
     public actual fun pickle(key: ByteArray): String {
         return ptr.pickle(key.toString())
-
     }
 
     public actual companion object {

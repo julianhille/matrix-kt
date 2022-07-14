@@ -1,6 +1,5 @@
 package io.github.matrixkt.olm
 
-
 /**
  * Olm SDK helper class.
  */
@@ -20,7 +19,7 @@ public actual class Utility {
      * @param signature the base64-encoded message signature to be checked.
      */
     public actual fun verifyEd25519Signature(key: String, message: String, signature: String) {
-       ptr.ed25519_verify(key, message, signature)
+        ptr.ed25519_verify(key, message, signature)
     }
 
     /**
@@ -31,7 +30,7 @@ public actual class Utility {
      * @return hash value if operation succeed, null otherwise
      */
     public actual fun sha256(input: String): String {
-       return ptr.sha256(input)
+        return ptr.sha256(input)
     }
 
 }

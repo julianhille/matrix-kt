@@ -46,7 +46,6 @@ public actual class PkDecryption {
         return ptr.pickle(key.toString())
     }
 
-
     public actual companion object {
         public actual val publicKeyLength: Long
             get() {
@@ -88,7 +87,6 @@ public actual class PkDecryption {
                 pkdec.free()
                 throw e
             }
-
         }
     }
 }
